@@ -6,43 +6,69 @@ import (
 )
 
 type TokenBucket struct {
+	mu sync.Mutex
+	// protects the map
+	buckets    map[string]*tbState
 	capacity   int64
-	tokens     int64
 	refillRate int64 // tokens per second
+}
+
+type tbState struct {
+	tokens     float64
 	lastRefill time.Time
-	mu         sync.Mutex
 }
 
 func NewTokenBucket(capacity, refillRate int64) *TokenBucket {
 	return &TokenBucket{
+		buckets:    make(map[string]*tbState),
 		capacity:   capacity,
-		tokens:     capacity,
 		refillRate: refillRate,
-		lastRefill: time.Now(),
 	}
 }
 
-func (tb *TokenBucket) Allow() bool {
+func (tb *TokenBucket) Allow(key string) bool {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 
-	// Refill tokens
-	now := time.Now()
-	elapsed := now.Sub(tb.lastRefill).Seconds()
-	newTokens := int64(elapsed * float64(tb.refillRate))
-	tb.tokens = min(tb.capacity, tb.tokens+newTokens)
-	tb.lastRefill = now
+	state := tb.getOrCreate(key)
 
-	if tb.tokens > 0 {
-		tb.tokens--
+	// refill
+	now := time.Now()
+	elapsed := now.Sub(state.lastRefill).Seconds()
+	state.tokens += elapsed * float64(tb.refillRate)
+	if state.tokens > float64(tb.capacity) {
+		state.tokens = float64(tb.capacity)
+	}
+	state.lastRefill = now
+
+	if state.tokens >= 1 {
+		state.tokens -= 1
 		return true
 	}
 	return false
 }
 
-func min(a, b int64) int64 {
-	if a < b {
-		return a
+func (tb *TokenBucket) GetStats(key string) LimiterStats {
+	tb.mu.Lock()
+	defer tb.mu.Unlock()
+
+	state := tb.getOrCreate(key)
+	remaining := int64(state.tokens)
+	if remaining < 0 {
+		remaining = 0
 	}
-	return b
+	return LimiterStats{
+		Remaining: remaining,
+		Limit:     tb.capacity,
+		Reset:     time.Now().Add(time.Duration((float64(tb.capacity)-state.tokens)/float64(tb.refillRate)) * time.Second).Unix(),
+	}
+}
+
+func (tb *TokenBucket) getOrCreate(key string) *tbState {
+	if s, ok := tb.buckets[key]; ok {
+		return s
+	}
+	s := &tbState{tokens: float64(tb.capacity), lastRefill: time.Now()}
+	tb.buckets[key] = s
+	return s
 }
