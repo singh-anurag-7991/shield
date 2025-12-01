@@ -3,13 +3,15 @@ package limiter
 import (
 	"sync"
 	"time"
+
+	"github.com/singh-anurag-7991/shield/internal/rate"
 )
 
 type LeakyBucket struct {
 	mu       sync.Mutex
 	buckets  map[string]*lbState
 	capacity int64
-	rate     int64 // leaks per second
+	rate     int64
 }
 
 type lbState struct {
@@ -33,7 +35,7 @@ func (lb *LeakyBucket) Allow(key string) bool {
 	now := time.Now()
 	elapsed := now.Sub(state.lastLeak).Seconds()
 	leaked := elapsed * float64(lb.rate)
-	state.water = maxFloat(0, state.water-leaked)
+	state.water = maxFloat(0.0, state.water-leaked)
 	state.lastLeak = now
 
 	if state.water < float64(lb.capacity) {
@@ -43,7 +45,7 @@ func (lb *LeakyBucket) Allow(key string) bool {
 	return false
 }
 
-func (lb *LeakyBucket) GetStats(key string) LimiterStats {
+func (lb *LeakyBucket) GetStats(key string) rate.LimiterStats {
 	lb.mu.Lock()
 	defer lb.mu.Unlock()
 
@@ -53,7 +55,7 @@ func (lb *LeakyBucket) GetStats(key string) LimiterStats {
 	if remaining < 0 {
 		remaining = 0
 	}
-	return LimiterStats{
+	return rate.LimiterStats{
 		Remaining: remaining,
 		Limit:     lb.capacity,
 		Reset:     0,

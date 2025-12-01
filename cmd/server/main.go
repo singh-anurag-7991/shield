@@ -13,17 +13,14 @@ import (
 func main() {
 	r := gin.Default()
 
-	// Production-ready storage
 	memStorage := storage.NewMemoryStorage()
 
-	// REAL config - multiple algorithms per endpoint
-	// Added Window for fixed/sliding completeness (optional for token/leaky)
 	configs := []models.LimiterConfig{
 		{
 			Name:      "global",
 			Algorithm: "token",
 			Capacity:  10,
-			Rate:      10, // 10/sec
+			Rate:      10,
 		},
 		{
 			Name:      "burst",
@@ -31,16 +28,14 @@ func main() {
 			Capacity:  5,
 			Rate:      2,
 		},
-		// Example for window-based (uncomment to test):
 		// {
-		// 	Name:      "windowed",
-		// 	Algorithm: "sliding",
-		// 	Capacity:  100,
-		// 	Window:    "60s",
+		//     Name:      "windowed",
+		//     Algorithm: "sliding",
+		//     Capacity:  100,
+		//     Window:    "60s",
 		// },
 	}
 
-	// Apply middleware to ALL routes
 	r.Use(middleware.RateLimit(memStorage, configs))
 
 	r.GET("/health", func(c *gin.Context) {

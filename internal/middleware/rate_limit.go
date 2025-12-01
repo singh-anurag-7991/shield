@@ -28,7 +28,6 @@ func RateLimit(storage storage.Storage, configs []models.LimiterConfig) gin.Hand
 				c.Abort()
 				return
 			}
-			// Set headers for allowed requests too (standard practice)
 			stats := limiterInstance.GetStats(clientIP)
 			c.Header("X-RateLimit-Limit", strconv.FormatInt(stats.Limit, 10))
 			c.Header("X-RateLimit-Remaining", strconv.FormatInt(stats.Remaining, 10))

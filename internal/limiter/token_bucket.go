@@ -3,14 +3,15 @@ package limiter
 import (
 	"sync"
 	"time"
+
+	"github.com/singh-anurag-7991/shield/internal/rate"
 )
 
 type TokenBucket struct {
-	mu sync.Mutex
-	// protects the map
+	mu         sync.Mutex
 	buckets    map[string]*tbState
 	capacity   int64
-	refillRate int64 // tokens per second
+	refillRate int64
 }
 
 type tbState struct {
@@ -32,7 +33,6 @@ func (tb *TokenBucket) Allow(key string) bool {
 
 	state := tb.getOrCreate(key)
 
-	// refill
 	now := time.Now()
 	elapsed := now.Sub(state.lastRefill).Seconds()
 	state.tokens += elapsed * float64(tb.refillRate)
@@ -48,7 +48,7 @@ func (tb *TokenBucket) Allow(key string) bool {
 	return false
 }
 
-func (tb *TokenBucket) GetStats(key string) LimiterStats {
+func (tb *TokenBucket) GetStats(key string) rate.LimiterStats {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
 
@@ -57,7 +57,7 @@ func (tb *TokenBucket) GetStats(key string) LimiterStats {
 	if remaining < 0 {
 		remaining = 0
 	}
-	return LimiterStats{
+	return rate.LimiterStats{
 		Remaining: remaining,
 		Limit:     tb.capacity,
 		Reset:     time.Now().Add(time.Duration((float64(tb.capacity)-state.tokens)/float64(tb.refillRate)) * time.Second).Unix(),

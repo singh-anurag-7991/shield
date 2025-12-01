@@ -3,6 +3,8 @@ package limiter
 import (
 	"sync"
 	"time"
+
+	"github.com/singh-anurag-7991/shield/internal/rate"
 )
 
 type FixedWindow struct {
@@ -37,13 +39,12 @@ func (fw *FixedWindow) Allow(key string) bool {
 		return true
 	}
 
-	// new window
 	fw.counts[key] = 1
 	fw.resets[key] = now.Add(fw.window)
 	return true
 }
 
-func (fw *FixedWindow) GetStats(key string) LimiterStats {
+func (fw *FixedWindow) GetStats(key string) rate.LimiterStats {
 	fw.mu.Lock()
 	defer fw.mu.Unlock()
 
@@ -57,7 +58,7 @@ func (fw *FixedWindow) GetStats(key string) LimiterStats {
 	if r, ok := fw.resets[key]; ok {
 		reset = r.Unix()
 	}
-	return LimiterStats{Remaining: remaining, Limit: fw.limit, Reset: reset}
+	return rate.LimiterStats{Remaining: remaining, Limit: fw.limit, Reset: reset}
 }
 
 func (fw *FixedWindow) cleanup() {

@@ -4,6 +4,8 @@ import (
 	"container/list"
 	"sync"
 	"time"
+
+	"github.com/singh-anurag-7991/shield/internal/rate"
 )
 
 type SlidingLog struct {
@@ -32,7 +34,6 @@ func (sl *SlidingLog) Allow(key string) bool {
 	}
 	l := sl.logs[key]
 
-	// Remove old timestamps
 	for e := l.Front(); e != nil; {
 		if e.Value.(time.Time).Before(cutoff) {
 			next := e.Next()
@@ -50,18 +51,18 @@ func (sl *SlidingLog) Allow(key string) bool {
 	return false
 }
 
-func (sl *SlidingLog) GetStats(key string) LimiterStats {
+func (sl *SlidingLog) GetStats(key string) rate.LimiterStats {
 	sl.mu.Lock()
 	defer sl.mu.Unlock()
 
 	if sl.logs[key] == nil {
-		return LimiterStats{Remaining: sl.limit, Limit: sl.limit, Reset: 0}
+		return rate.LimiterStats{Remaining: sl.limit, Limit: sl.limit, Reset: 0}
 	}
 	count := int64(sl.logs[key].Len())
-	return LimiterStats{
+	return rate.LimiterStats{
 		Remaining: max(0, sl.limit-count),
 		Limit:     sl.limit,
-		Reset:     0, // Sliding window doesn't have a fixed reset
+		Reset:     0,
 	}
 }
 

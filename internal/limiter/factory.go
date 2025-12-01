@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/singh-anurag-7991/shield/internal/models"
+	"github.com/singh-anurag-7991/shield/internal/rate"
 	"github.com/singh-anurag-7991/shield/internal/storage"
 )
 
@@ -16,15 +17,14 @@ func NewFactory(s storage.Storage) *LimiterFactory {
 	return &LimiterFactory{storage: s}
 }
 
-func (f *LimiterFactory) Create(cfg models.LimiterConfig) Limiter {
+func (f *LimiterFactory) Create(cfg models.LimiterConfig) rate.Limiter {
 	ctx := context.Background()
 	l, err := f.storage.GetLimiter(ctx, cfg.Name)
 	if err == nil {
 		return l
 	}
 
-	// Create new limiter
-	var lim Limiter
+	var lim rate.Limiter
 	switch cfg.Algorithm {
 	case "token":
 		lim = NewTokenBucket(cfg.Capacity, cfg.Rate)
@@ -40,9 +40,8 @@ func (f *LimiterFactory) Create(cfg models.LimiterConfig) Limiter {
 		panic("unknown algorithm: " + cfg.Algorithm)
 	}
 
-	// Cache it
 	if err := f.storage.SetLimiter(ctx, cfg.Name, lim); err != nil {
-		// In production, log this
+		// Log in production
 	}
 	return lim
 }

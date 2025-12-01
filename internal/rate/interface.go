@@ -1,4 +1,4 @@
-package limiter
+package rate
 
 type Limiter interface {
 	Allow(key string) bool
@@ -8,5 +8,5 @@ type Limiter interface {
 type LimiterStats struct {
 	Remaining int64
 	Limit     int64
-	Reset     int64 // unix timestamp when limit resets/refills
+	Reset     int64
 }

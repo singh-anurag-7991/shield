@@ -5,34 +5,37 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/singh-anurag-7991/shield/internal/limiter"
+	"github.com/singh-anurag-7991/shield/internal/rate"
 )
 
+type Storage interface {
+	GetLimiter(ctx context.Context, key string) (rate.Limiter, error)
+	SetLimiter(ctx context.Context, key string, limiter rate.Limiter) error
+}
+
 type MemoryStorage struct {
-	limiters map[string]limiter.Limiter
+	limiters map[string]rate.Limiter
 	mu       sync.Mutex
 }
 
 func NewMemoryStorage() *MemoryStorage {
 	return &MemoryStorage{
-		limiters: make(map[string]limiter.Limiter),
+		limiters: make(map[string]rate.Limiter),
 	}
 }
 
-func (ms *MemoryStorage) GetLimiter(ctx context.Context, key string) (limiter.Limiter, error) {
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-
-	if l, ok := ms.limiters[key]; ok {
+func (m *MemoryStorage) GetLimiter(ctx context.Context, key string) (rate.Limiter, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if l, ok := m.limiters[key]; ok {
 		return l, nil
 	}
-	return nil, fmt.Errorf("limiter not found for key: %s", key)
+	return nil, fmt.Errorf("limiter not found: %s", key)
 }
 
-func (ms *MemoryStorage) SetLimiter(ctx context.Context, key string, l limiter.Limiter) error {
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-
-	ms.limiters[key] = l
+func (m *MemoryStorage) SetLimiter(ctx context.Context, key string, limiter rate.Limiter) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.limiters[key] = limiter
 	return nil
 }
