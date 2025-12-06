@@ -2,6 +2,7 @@ package limiter
 
 import (
 	"container/list"
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -19,7 +20,7 @@ func NewSlidingLog(limit int64, window time.Duration) *SlidingLog {
 	return &SlidingLog{
 		limit:  limit,
 		window: window,
-		logs:   make(map[string]*list.List),
+		logs:   make(map[string]*list.List), // ← EXPLICIT INIT
 	}
 }
 
@@ -71,4 +72,26 @@ func max(a, b int64) int64 {
 		return a
 	}
 	return b
+}
+
+func (sl *SlidingLog) LimiterType() string {
+	return "sliding"
+}
+
+func (sl *SlidingLog) MarshalJSON() ([]byte, error) {
+	type Alias SlidingLog
+	return json.Marshal(&struct{ *Alias }{Alias: (*Alias)(sl)})
+}
+
+func (sl *SlidingLog) UnmarshalJSON(data []byte) error {
+	type Alias SlidingLog
+	var a Alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+	*sl = SlidingLog(a)
+	if sl.logs == nil { // ← SAFETY CHECK AFTER UNMARSHAL
+		sl.logs = make(map[string]*list.List)
+	}
+	return nil
 }

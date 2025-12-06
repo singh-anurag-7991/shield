@@ -7,13 +7,22 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/singh-anurag-7991/shield/internal/middleware"
 	"github.com/singh-anurag-7991/shield/internal/models"
+	"github.com/singh-anurag-7991/shield/internal/rate" // ← YE IMPORT ADD KARO (for Storage interface)
 	"github.com/singh-anurag-7991/shield/internal/storage"
 )
 
 func main() {
 	r := gin.Default()
 
-	memStorage := storage.NewMemoryStorage()
+	var storageImpl rate.Storage
+
+	storageImpl = storage.NewMemoryStorage()
+
+	redisStorage, err := storage.NewRedisStorage("redis://default:AXOBAAIncDJlMTJiNjc2NTlmNDU0MjI1OThjYjFjYjFlNDZjYThlZHAyMjk1Njk@related-weevil-29569.upstash.io:6379")
+	if err != nil {
+		log.Fatal("Redis connection failed:", err)
+	}
+	storageImpl = redisStorage
 
 	configs := []models.LimiterConfig{
 		{
@@ -22,21 +31,15 @@ func main() {
 			Capacity:  10,
 			Rate:      10,
 		},
-		{
-			Name:      "burst",
-			Algorithm: "leaky",
-			Capacity:  5,
-			Rate:      2,
-		},
 		// {
-		//     Name:      "windowed",
-		//     Algorithm: "sliding",
-		//     Capacity:  100,
-		//     Window:    "60s",
+		// 	Name:      "burst",
+		// 	Algorithm: "leaky",
+		// 	Capacity:  5,
+		// 	Rate:      2,
 		// },
 	}
 
-	r.Use(middleware.RateLimit(memStorage, configs))
+	r.Use(middleware.RateLimit(storageImpl, configs))
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok"})

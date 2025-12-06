@@ -8,11 +8,6 @@ import (
 	"github.com/singh-anurag-7991/shield/internal/rate"
 )
 
-type Storage interface {
-	GetLimiter(ctx context.Context, key string) (rate.Limiter, error)
-	SetLimiter(ctx context.Context, key string, limiter rate.Limiter) error
-}
-
 type MemoryStorage struct {
 	limiters map[string]rate.Limiter
 	mu       sync.Mutex
@@ -33,9 +28,9 @@ func (m *MemoryStorage) GetLimiter(ctx context.Context, key string) (rate.Limite
 	return nil, fmt.Errorf("limiter not found: %s", key)
 }
 
-func (m *MemoryStorage) SetLimiter(ctx context.Context, key string, limiter rate.Limiter) error {
+func (m *MemoryStorage) SetLimiter(ctx context.Context, key string, l rate.Limiter) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.limiters[key] = limiter
+	m.limiters[key] = l
 	return nil
 }

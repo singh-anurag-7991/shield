@@ -1,6 +1,7 @@
 package limiter
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -25,6 +26,22 @@ func NewTokenBucket(capacity, refillRate int64) *TokenBucket {
 		capacity:   capacity,
 		refillRate: refillRate,
 	}
+}
+
+func (tb *TokenBucket) getOrCreate(key string) *tbState {
+	if tb.buckets == nil {
+		tb.buckets = make(map[string]*tbState)
+	}
+	if s, ok := tb.buckets[key]; ok {
+		return s
+	}
+	// ← FULL INITIAL TOKENS + CURRENT TIME
+	s := &tbState{
+		tokens:     float64(tb.capacity),
+		lastRefill: time.Now(),
+	}
+	tb.buckets[key] = s
+	return s
 }
 
 func (tb *TokenBucket) Allow(key string) bool {
@@ -64,11 +81,36 @@ func (tb *TokenBucket) GetStats(key string) rate.LimiterStats {
 	}
 }
 
-func (tb *TokenBucket) getOrCreate(key string) *tbState {
-	if s, ok := tb.buckets[key]; ok {
-		return s
+// func (tb *TokenBucket) getOrCreate(key string) *tbState {
+// 	if tb.buckets == nil {
+// 		tb.buckets = make(map[string]*tbState) // ← SAFETY CHECK
+// 	}
+// 	if s, ok := tb.buckets[key]; ok {
+// 		return s
+// 	}
+// 	s := &tbState{tokens: float64(tb.capacity), lastRefill: time.Now()}
+// 	tb.buckets[key] = s
+// 	return s
+// }
+
+func (tb *TokenBucket) LimiterType() string {
+	return "token"
+}
+
+func (tb *TokenBucket) MarshalJSON() ([]byte, error) {
+	type Alias TokenBucket
+	return json.Marshal(&struct{ *Alias }{Alias: (*Alias)(tb)})
+}
+
+func (tb *TokenBucket) UnmarshalJSON(data []byte) error {
+	type Alias TokenBucket
+	var a Alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
 	}
-	s := &tbState{tokens: float64(tb.capacity), lastRefill: time.Now()}
-	tb.buckets[key] = s
-	return s
+	*tb = TokenBucket(a)
+	if tb.buckets == nil { // ← SAFETY CHECK AFTER UNMARSHAL
+		tb.buckets = make(map[string]*tbState)
+	}
+	return nil
 }

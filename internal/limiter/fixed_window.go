@@ -1,6 +1,7 @@
 package limiter
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -74,4 +75,23 @@ func (fw *FixedWindow) cleanup() {
 		}
 		fw.mu.Unlock()
 	}
+}
+
+func (fw *FixedWindow) LimiterType() string {
+	return "fixed"
+}
+
+func (fw *FixedWindow) MarshalJSON() ([]byte, error) {
+	type Alias FixedWindow
+	return json.Marshal(&struct{ *Alias }{Alias: (*Alias)(fw)})
+}
+
+func (fw *FixedWindow) UnmarshalJSON(data []byte) error {
+	type Alias FixedWindow
+	var a Alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+	*fw = FixedWindow(a)
+	return nil
 }

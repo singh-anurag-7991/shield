@@ -6,21 +6,19 @@ import (
 
 	"github.com/singh-anurag-7991/shield/internal/models"
 	"github.com/singh-anurag-7991/shield/internal/rate"
-	"github.com/singh-anurag-7991/shield/internal/storage"
 )
 
 type LimiterFactory struct {
-	storage storage.Storage
+	storage rate.Storage
 }
 
-func NewFactory(s storage.Storage) *LimiterFactory {
+func NewFactory(s rate.Storage) *LimiterFactory {
 	return &LimiterFactory{storage: s}
 }
 
 func (f *LimiterFactory) Create(cfg models.LimiterConfig) rate.Limiter {
 	ctx := context.Background()
-	l, err := f.storage.GetLimiter(ctx, cfg.Name)
-	if err == nil {
+	if l, err := f.storage.GetLimiter(ctx, cfg.Name); err == nil {
 		return l
 	}
 
@@ -40,8 +38,6 @@ func (f *LimiterFactory) Create(cfg models.LimiterConfig) rate.Limiter {
 		panic("unknown algorithm: " + cfg.Algorithm)
 	}
 
-	if err := f.storage.SetLimiter(ctx, cfg.Name, lim); err != nil {
-		// Log in production
-	}
+	_ = f.storage.SetLimiter(ctx, cfg.Name, lim)
 	return lim
 }

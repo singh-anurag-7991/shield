@@ -6,10 +6,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/singh-anurag-7991/shield/internal/limiter"
 	"github.com/singh-anurag-7991/shield/internal/models"
-	"github.com/singh-anurag-7991/shield/internal/storage"
+	"github.com/singh-anurag-7991/shield/internal/rate"
 )
 
-func RateLimit(storage storage.Storage, configs []models.LimiterConfig) gin.HandlerFunc {
+func RateLimit(storage rate.Storage, configs []models.LimiterConfig) gin.HandlerFunc {
 	factory := limiter.NewFactory(storage)
 	return func(c *gin.Context) {
 		clientIP := c.ClientIP()

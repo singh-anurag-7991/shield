@@ -1,6 +1,7 @@
 package limiter
 
 import (
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -63,6 +64,9 @@ func (lb *LeakyBucket) GetStats(key string) rate.LimiterStats {
 }
 
 func (lb *LeakyBucket) getOrCreate(key string) *lbState {
+	if lb.buckets == nil {
+		lb.buckets = make(map[string]*lbState) // ← SAFETY CHECK
+	}
 	if s, ok := lb.buckets[key]; ok {
 		return s
 	}
@@ -76,4 +80,26 @@ func maxFloat(a, b float64) float64 {
 		return a
 	}
 	return b
+}
+
+func (lb *LeakyBucket) LimiterType() string {
+	return "leaky"
+}
+
+func (lb *LeakyBucket) MarshalJSON() ([]byte, error) {
+	type Alias LeakyBucket
+	return json.Marshal(&struct{ *Alias }{Alias: (*Alias)(lb)})
+}
+
+func (lb *LeakyBucket) UnmarshalJSON(data []byte) error {
+	type Alias LeakyBucket
+	var a Alias
+	if err := json.Unmarshal(data, &a); err != nil {
+		return err
+	}
+	*lb = LeakyBucket(a)
+	if lb.buckets == nil { // ← SAFETY CHECK AFTER UNMARSHAL
+		lb.buckets = make(map[string]*lbState)
+	}
+	return nil
 }
