@@ -95,3 +95,12 @@ func (fw *FixedWindow) UnmarshalJSON(data []byte) error {
 	*fw = FixedWindow(a)
 	return nil
 }
+
+func (fw *FixedWindow) getCount(key string) int64 {
+	fw.mu.Lock()
+	defer fw.mu.Unlock()
+	if fw.counts[key] == 0 { // ← SAFETY CHECK
+		fw.counts[key] = 1
+	}
+	return fw.counts[key]
+}

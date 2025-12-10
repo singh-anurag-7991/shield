@@ -95,3 +95,12 @@ func (sl *SlidingLog) UnmarshalJSON(data []byte) error {
 	}
 	return nil
 }
+
+func (sl *SlidingLog) getLog(key string) *list.List {
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+	if sl.logs[key] == nil { // ← YE SAFETY CHECK ADD KARO
+		sl.logs[key] = list.New()
+	}
+	return sl.logs[key]
+}

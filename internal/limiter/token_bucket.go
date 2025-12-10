@@ -28,18 +28,30 @@ func NewTokenBucket(capacity, refillRate int64) *TokenBucket {
 	}
 }
 
+// func (tb *TokenBucket) getOrCreate(key string) *tbState {
+// 	if tb.buckets == nil {
+// 		tb.buckets = make(map[string]*tbState)
+// 	}
+// 	if s, ok := tb.buckets[key]; ok {
+// 		return s
+// 	}
+// 	// ← FULL INITIAL TOKENS + CURRENT TIME
+// 	s := &tbState{
+// 		tokens:     float64(tb.capacity),
+// 		lastRefill: time.Now(),
+// 	}
+// 	tb.buckets[key] = s
+// 	return s
+// }
+
 func (tb *TokenBucket) getOrCreate(key string) *tbState {
-	if tb.buckets == nil {
+	if tb.buckets == nil { // ← YE SAFETY CHECK ADD KARO
 		tb.buckets = make(map[string]*tbState)
 	}
 	if s, ok := tb.buckets[key]; ok {
 		return s
 	}
-	// ← FULL INITIAL TOKENS + CURRENT TIME
-	s := &tbState{
-		tokens:     float64(tb.capacity),
-		lastRefill: time.Now(),
-	}
+	s := &tbState{tokens: float64(tb.capacity), lastRefill: time.Now()}
 	tb.buckets[key] = s
 	return s
 }

@@ -25,18 +25,18 @@ func main() {
 	storageImpl = redisStorage
 
 	configs := []models.LimiterConfig{
-		{
-			Name:      "global",
-			Algorithm: "token",
-			Capacity:  10,
-			Rate:      10,
-		},
 		// {
-		// 	Name:      "burst",
-		// 	Algorithm: "leaky",
-		// 	Capacity:  5,
-		// 	Rate:      2,
+		// 	Name:      "global",
+		// 	Algorithm: "token",
+		// 	Capacity:  10,
+		// 	Rate:      10,
 		// },
+		{
+			Name:      "burst",
+			Algorithm: "leaky",
+			Capacity:  5,
+			Rate:      2,
+		},
 	}
 
 	r.Use(middleware.RateLimit(storageImpl, configs))

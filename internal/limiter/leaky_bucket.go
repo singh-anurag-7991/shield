@@ -64,8 +64,8 @@ func (lb *LeakyBucket) GetStats(key string) rate.LimiterStats {
 }
 
 func (lb *LeakyBucket) getOrCreate(key string) *lbState {
-	if lb.buckets == nil {
-		lb.buckets = make(map[string]*lbState) // ← SAFETY CHECK
+	if lb.buckets == nil { // ← YE SAFETY CHECK ADD KARO
+		lb.buckets = make(map[string]*lbState)
 	}
 	if s, ok := lb.buckets[key]; ok {
 		return s
