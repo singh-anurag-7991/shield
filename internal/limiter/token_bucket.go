@@ -28,34 +28,6 @@ func NewTokenBucket(capacity, refillRate int64) *TokenBucket {
 	}
 }
 
-// func (tb *TokenBucket) getOrCreate(key string) *tbState {
-// 	if tb.buckets == nil {
-// 		tb.buckets = make(map[string]*tbState)
-// 	}
-// 	if s, ok := tb.buckets[key]; ok {
-// 		return s
-// 	}
-// 	// ← FULL INITIAL TOKENS + CURRENT TIME
-// 	s := &tbState{
-// 		tokens:     float64(tb.capacity),
-// 		lastRefill: time.Now(),
-// 	}
-// 	tb.buckets[key] = s
-// 	return s
-// }
-
-func (tb *TokenBucket) getOrCreate(key string) *tbState {
-	if tb.buckets == nil { // ← YE SAFETY CHECK ADD KARO
-		tb.buckets = make(map[string]*tbState)
-	}
-	if s, ok := tb.buckets[key]; ok {
-		return s
-	}
-	s := &tbState{tokens: float64(tb.capacity), lastRefill: time.Now()}
-	tb.buckets[key] = s
-	return s
-}
-
 func (tb *TokenBucket) Allow(key string) bool {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
@@ -93,17 +65,14 @@ func (tb *TokenBucket) GetStats(key string) rate.LimiterStats {
 	}
 }
 
-// func (tb *TokenBucket) getOrCreate(key string) *tbState {
-// 	if tb.buckets == nil {
-// 		tb.buckets = make(map[string]*tbState) // ← SAFETY CHECK
-// 	}
-// 	if s, ok := tb.buckets[key]; ok {
-// 		return s
-// 	}
-// 	s := &tbState{tokens: float64(tb.capacity), lastRefill: time.Now()}
-// 	tb.buckets[key] = s
-// 	return s
-// }
+func (tb *TokenBucket) getOrCreate(key string) *tbState {
+	if s, ok := tb.buckets[key]; ok {
+		return s
+	}
+	s := &tbState{tokens: float64(tb.capacity), lastRefill: time.Now()}
+	tb.buckets[key] = s
+	return s
+}
 
 func (tb *TokenBucket) LimiterType() string {
 	return "token"
@@ -111,7 +80,9 @@ func (tb *TokenBucket) LimiterType() string {
 
 func (tb *TokenBucket) MarshalJSON() ([]byte, error) {
 	type Alias TokenBucket
-	return json.Marshal(&struct{ *Alias }{Alias: (*Alias)(tb)})
+	return json.Marshal(&struct {
+		*Alias
+	}{Alias: (*Alias)(tb)})
 }
 
 func (tb *TokenBucket) UnmarshalJSON(data []byte) error {
@@ -121,7 +92,7 @@ func (tb *TokenBucket) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*tb = TokenBucket(a)
-	if tb.buckets == nil { // ← SAFETY CHECK AFTER UNMARSHAL
+	if tb.buckets == nil {
 		tb.buckets = make(map[string]*tbState)
 	}
 	return nil

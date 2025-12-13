@@ -64,9 +64,6 @@ func (lb *LeakyBucket) GetStats(key string) rate.LimiterStats {
 }
 
 func (lb *LeakyBucket) getOrCreate(key string) *lbState {
-	if lb.buckets == nil { // ← YE SAFETY CHECK ADD KARO
-		lb.buckets = make(map[string]*lbState)
-	}
 	if s, ok := lb.buckets[key]; ok {
 		return s
 	}
@@ -88,7 +85,9 @@ func (lb *LeakyBucket) LimiterType() string {
 
 func (lb *LeakyBucket) MarshalJSON() ([]byte, error) {
 	type Alias LeakyBucket
-	return json.Marshal(&struct{ *Alias }{Alias: (*Alias)(lb)})
+	return json.Marshal(&struct {
+		*Alias
+	}{Alias: (*Alias)(lb)})
 }
 
 func (lb *LeakyBucket) UnmarshalJSON(data []byte) error {
@@ -98,7 +97,7 @@ func (lb *LeakyBucket) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*lb = LeakyBucket(a)
-	if lb.buckets == nil { // ← SAFETY CHECK AFTER UNMARSHAL
+	if lb.buckets == nil {
 		lb.buckets = make(map[string]*lbState)
 	}
 	return nil

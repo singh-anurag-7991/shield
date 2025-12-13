@@ -2,7 +2,6 @@ package storage
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -21,12 +20,6 @@ func NewRedisStorage(url string) (*RedisStorage, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Add TLS config for Upstash (required)
-	opts.TLSConfig = &tls.Config{
-		InsecureSkipVerify: false, // Use true for testing if cert issue
-	}
-
 	client := redis.NewClient(opts)
 	ctx := context.Background()
 	if err := client.Ping(ctx).Err(); err != nil {
@@ -35,7 +28,6 @@ func NewRedisStorage(url string) (*RedisStorage, error) {
 	return &RedisStorage{client: client}, nil
 }
 
-// Rest of the code remains same...
 func (r *RedisStorage) GetLimiter(ctx context.Context, key string) (rate.Limiter, error) {
 	data, err := r.client.Get(ctx, "shield:limiter:"+key).Bytes()
 	if err == redis.Nil {

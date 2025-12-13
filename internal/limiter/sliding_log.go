@@ -20,7 +20,7 @@ func NewSlidingLog(limit int64, window time.Duration) *SlidingLog {
 	return &SlidingLog{
 		limit:  limit,
 		window: window,
-		logs:   make(map[string]*list.List), // ← EXPLICIT INIT
+		logs:   make(map[string]*list.List),
 	}
 }
 
@@ -80,7 +80,9 @@ func (sl *SlidingLog) LimiterType() string {
 
 func (sl *SlidingLog) MarshalJSON() ([]byte, error) {
 	type Alias SlidingLog
-	return json.Marshal(&struct{ *Alias }{Alias: (*Alias)(sl)})
+	return json.Marshal(&struct {
+		*Alias
+	}{Alias: (*Alias)(sl)})
 }
 
 func (sl *SlidingLog) UnmarshalJSON(data []byte) error {
@@ -90,17 +92,8 @@ func (sl *SlidingLog) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*sl = SlidingLog(a)
-	if sl.logs == nil { // ← SAFETY CHECK AFTER UNMARSHAL
+	if sl.logs == nil {
 		sl.logs = make(map[string]*list.List)
 	}
 	return nil
-}
-
-func (sl *SlidingLog) getLog(key string) *list.List {
-	sl.mu.Lock()
-	defer sl.mu.Unlock()
-	if sl.logs[key] == nil { // ← YE SAFETY CHECK ADD KARO
-		sl.logs[key] = list.New()
-	}
-	return sl.logs[key]
 }

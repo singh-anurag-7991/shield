@@ -83,7 +83,9 @@ func (fw *FixedWindow) LimiterType() string {
 
 func (fw *FixedWindow) MarshalJSON() ([]byte, error) {
 	type Alias FixedWindow
-	return json.Marshal(&struct{ *Alias }{Alias: (*Alias)(fw)})
+	return json.Marshal(&struct {
+		*Alias
+	}{Alias: (*Alias)(fw)})
 }
 
 func (fw *FixedWindow) UnmarshalJSON(data []byte) error {
@@ -93,14 +95,11 @@ func (fw *FixedWindow) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	*fw = FixedWindow(a)
-	return nil
-}
-
-func (fw *FixedWindow) getCount(key string) int64 {
-	fw.mu.Lock()
-	defer fw.mu.Unlock()
-	if fw.counts[key] == 0 { // ← SAFETY CHECK
-		fw.counts[key] = 1
+	if fw.counts == nil {
+		fw.counts = make(map[string]int64)
 	}
-	return fw.counts[key]
+	if fw.resets == nil {
+		fw.resets = make(map[string]time.Time)
+	}
+	return nil
 }
